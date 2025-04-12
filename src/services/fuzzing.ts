@@ -1,3 +1,14 @@
+'use server';
+
+import { promisify } from 'util';
+
+let execAsync: any;
+
+async function initialize() {
+  const { exec } = await import('child_process');
+  execAsync = promisify(exec);
+}
+
 /**
  * Represents the result of a fuzzing attempt.
  */
@@ -9,7 +20,7 @@ export interface FuzzingResult {
   /**
    * The tool that was used for fuzzing (e.g., ffuf, wfuzz, gobuster).
    */
-tool: string;
+  tool: string;
   /**
    * The raw output from the fuzzing tool.
    */
@@ -24,11 +35,27 @@ tool: string;
  * @returns A promise that resolves to a FuzzingResult object.
  */
 export async function performFuzzing(url: string, tool: string): Promise<FuzzingResult> {
-  // TODO: Implement this by calling an API.
+  if (!execAsync) {
+    await initialize();
+  }
+  try {
+    const { stdout, stderr } = await execAsync(`${tool} -u ${url}`);
 
-  return {
-    url: url,
-    tool: tool,
-    output: 'ffuf v2.0.0\n\n:: Method           : GET\n:: URL              : http://127.0.0.1/FUZZ\n:: Wordlist         : /usr/share/wordlists/dirb/common.txt\n:: Progress         : [########################################] 6741/6741 (100.00%) \n:: Duration         : [0m10s] \n:: Started at       : 2024-01-01 00:00:00\n:: Finished at      : 2024-01-01 00:00:10\n:: Output file      : \n\n:: Matches          : Hit: 101 Status: 200 [Size: 123] [10 words] [100 chars]\n\n'
-  };
+    if (stderr) {
+      console.error(`${tool} produced an error:`, stderr);
+    }
+
+    return {
+      url: url,
+      tool: tool,
+      output: stdout || stderr,
+    };
+  } catch (error: any) {
+    console.error(`Failed to execute ${tool}:`, error);
+    return {
+      url: url,
+      tool: tool,
+      output: `Error: ${error.message}`,
+    };
+  }
 }

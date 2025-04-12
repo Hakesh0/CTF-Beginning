@@ -1,3 +1,14 @@
+'use server';
+
+import { promisify } from 'util';
+
+let execAsync: any;
+
+async function initialize() {
+  const { exec } = await import('child_process');
+  execAsync = promisify(exec);
+}
+
 /**
  * Represents the result of an Nmap scan.
  */
@@ -5,7 +16,7 @@ export interface NmapScanResult {
   /**
    * The IP address or domain that was scanned.
    */
-target: string;
+  target: string;
   /**
    * The command that was executed.
    */
@@ -24,11 +35,27 @@ target: string;
  * @returns A promise that resolves to an NmapScanResult object.
  */
 export async function performNmapScan(target: string, command: string): Promise<NmapScanResult> {
-  // TODO: Implement this by calling an API.
+  if (!execAsync) {
+    await initialize();
+  }
+  try {
+    const { stdout, stderr } = await execAsync(`${command} ${target}`);
 
-  return {
-    target: target,
-    command: command,
-    output: 'Starting Nmap 7.93 ( https://nmap.org )\nNmap scan report for 127.0.0.1\nHost is up (0.00028s latency).\nAll 1000 scanned ports on 127.0.0.1 are closed.\nNmap done: 1 IP address (1 host up) scanned in 3.05 seconds'
-  };
+    if (stderr) {
+      console.error('Nmap scan produced an error:', stderr);
+    }
+
+    return {
+      target: target,
+      command: command,
+      output: stdout || stderr,
+    };
+  } catch (error: any) {
+    console.error('Failed to execute Nmap scan:', error);
+    return {
+      target: target,
+      command: command,
+      output: `Error: ${error.message}`,
+    };
+  }
 }

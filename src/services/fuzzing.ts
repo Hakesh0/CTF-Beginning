@@ -40,32 +40,55 @@ export async function performFuzzing(url: string, tool: string): Promise<Fuzzing
   if (!execAsync) {
     await initialize();
   }
-  try {
-    if (!execAsync) {
-      console.error('execAsync is not initialized.  This indicates an issue with the environment.');
-      return {
+
+  const abortController = new AbortController();
+  const signal = abortController.signal;
+
+  const promise = new Promise<FuzzingResult>(async (resolve, reject) => {
+    try {
+      if (!execAsync) {
+        console.error('execAsync is not initialized.  This indicates an issue with the environment.');
+        resolve({
+          url: url,
+          tool: tool,
+          output: 'Error: Server environment not properly initialized.',
+        });
+        return;
+      }
+
+      const { stdout, stderr } = await execAsync(`${tool} -u ${url}`, { signal });
+
+      if (stderr) {
+        console.error(`${tool} produced an error:`, stderr);
+      }
+
+      resolve({
         url: url,
         tool: tool,
-        output: 'Error: Server environment not properly initialized.',
-      };
+        output: stdout || stderr,
+      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log(`${tool} was aborted by the user.`);
+        resolve({
+          url: url,
+          tool: tool,
+          output: `${tool} was aborted.`,
+        });
+      } else {
+        console.error(`Failed to execute ${tool}:`, error);
+        resolve({
+          url: url,
+          tool: tool,
+          output: `Error: ${error.message}`,
+        });
+      }
     }
-    const { stdout, stderr } = await execAsync(`${tool} -u ${url}`);
+  });
 
-    if (stderr) {
-      console.error(`${tool} produced an error:`, stderr);
-    }
+  (promise as any).cancel = () => {
+    abortController.abort();
+  };
 
-    return {
-      url: url,
-      tool: tool,
-      output: stdout || stderr,
-    };
-  } catch (error: any) {
-    console.error(`Failed to execute ${tool}:`, error);
-    return {
-      url: url,
-      tool: tool,
-      output: `Error: ${error.message}`,
-    };
-  }
+  return promise;
 }

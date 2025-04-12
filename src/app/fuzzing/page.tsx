@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
+
+let Terminal: any;
+let FitAddon: any;
 
 const FuzzingPage = () => {
   const [url, setUrl] = useState('');
@@ -17,18 +18,38 @@ const FuzzingPage = () => {
   const [loading, setLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
-  const term = useRef<Terminal | null>(null);
-  const fitAddon = useRef(new FitAddon());
+  const term = useRef<any | null>(null);
+  const fitAddon = useRef<any>(null);
   const [currentProcess, setCurrentProcess] = useState<any>(null);
 
   const tools = ['ffuf', 'wfuzz', 'gobuster'];
 
   useEffect(() => {
-    if (terminalRef.current) {
-      term.current = new Terminal();
-      term.current.loadAddon(fitAddon.current);
-      term.current.open(terminalRef.current);
-      fitAddon.current.fit();
+    const initTerminal = async () => {
+      Terminal = (await import('xterm')).Terminal;
+      FitAddon = (await import('xterm-addon-fit')).FitAddon;
+      fitAddon.current = new FitAddon();
+      if (terminalRef.current) {
+        term.current = new Terminal({
+          theme: {
+            background: '#2E3440', // Nord Dark - Polar Night 0
+            foreground: '#D8DEE9', // Nord Dark - Snow Storm 3
+            cursor: '#D8DEE9',
+            selectionBackground: 'rgba(255, 255, 255, 0.3)',
+          },
+          fontFamily: 'Menlo, monospace',
+          fontSize: 12,
+          cursorStyle: 'bar',
+          cursorBlink: true,
+        });
+        term.current.loadAddon(fitAddon.current);
+        term.current.open(terminalRef.current);
+        fitAddon.current.fit();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      initTerminal();
     }
 
     return () => {
@@ -128,7 +149,16 @@ const FuzzingPage = () => {
           </div>
           <div className="grid gap-2">
             <Label>Output</Label>
-            <div ref={terminalRef} className="terminal-container bg-black text-green-400 font-mono text-sm" style={{ height: '400px', width: '100%' }} />
+            <div className="rounded-lg bg-[#1E1E1E] shadow-md">
+              <div className="flex items-center h-8 rounded-t-lg bg-[#333333] px-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#27C93F]"></div>
+                </div>
+              </div>
+              <div ref={terminalRef} className="terminal-container font-mono text-sm px-4 py-2" style={{ height: '400px', width: '100%' }} />
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -5,8 +5,10 @@ import { promisify } from 'util';
 let execAsync: any;
 
 async function initialize() {
-  const { exec } = await import('child_process');
-  execAsync = promisify(exec);
+  if (typeof window === 'undefined') {
+    const { exec } = await import('child_process');
+    execAsync = promisify(exec);
+  }
 }
 
 /**
@@ -38,7 +40,16 @@ export async function performNmapScan(target: string, command: string): Promise<
   if (!execAsync) {
     await initialize();
   }
+
   try {
+    if (!execAsync) {
+      console.error('execAsync is not initialized.  This indicates an issue with the environment.');
+      return {
+        target: target,
+        command: command,
+        output: 'Error: Server environment not properly initialized.',
+      };
+    }
     const { stdout, stderr } = await execAsync(`${command} ${target}`);
 
     if (stderr) {

@@ -5,8 +5,10 @@ import { promisify } from 'util';
 let execAsync: any;
 
 async function initialize() {
-  const { exec } = await import('child_process');
-  execAsync = promisify(exec);
+  if (typeof window === 'undefined') {
+    const { exec } = await import('child_process');
+    execAsync = promisify(exec);
+  }
 }
 
 /**
@@ -39,6 +41,14 @@ export async function performFuzzing(url: string, tool: string): Promise<Fuzzing
     await initialize();
   }
   try {
+    if (!execAsync) {
+      console.error('execAsync is not initialized.  This indicates an issue with the environment.');
+      return {
+        url: url,
+        tool: tool,
+        output: 'Error: Server environment not properly initialized.',
+      };
+    }
     const { stdout, stderr } = await execAsync(`${tool} -u ${url}`);
 
     if (stderr) {

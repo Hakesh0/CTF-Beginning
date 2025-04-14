@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import 'xterm/css/xterm.css';
+import { saveScanOutput } from '@/services/utils';
+import { toast } from '@/hooks/use-toast';
 
 let Terminal: any;
 let FitAddon: any;
@@ -14,6 +16,7 @@ let FitAddon: any;
 const NmapPage = () => {
   const [target, setTarget] = useState('');
   const [command, setCommand] = useState('nmap -sC -sV -p-');
+  const [outputPath, setOutputPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -57,6 +60,19 @@ const NmapPage = () => {
   const handleNmapScan = async () => {
     if (!target) {
       term.current?.writeln('Please enter a target IP address or domain.');
+      toast({
+        title: "Error",
+        description: 'Please enter a target IP address or domain.',
+      });
+      return;
+    }
+
+    if (!outputPath) {
+      term.current?.writeln('Please enter an output file path.');
+      toast({
+        title: "Error",
+        description: 'Please enter an output file path.',
+      });
       return;
     }
 
@@ -72,8 +88,20 @@ const NmapPage = () => {
       term.current?.writeln(result.output);
       term.current?.writeln('\r\nNmap scan completed.\r\n');
 
+      // Save the output to the specified file
+      const filePath = `${outputPath}/nmap`;
+      await saveScanOutput(result.output, filePath);
+      toast({
+        title: "Success",
+        description: `Nmap scan completed and output saved to ${filePath}`,
+      });
+
     } catch (error: any) {
       term.current?.writeln(`Error: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Nmap scan failed: ${error.message}`,
+      });
     } finally {
       setLoading(false);
       setIsRunning(false);
@@ -115,6 +143,16 @@ const NmapPage = () => {
               className="resize-none"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
+              disabled={isRunning}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="outputPath">Output File Path</Label>
+            <Input
+              id="outputPath"
+              placeholder="Enter output file path"
+              value={outputPath}
+              onChange={(e) => setOutputPath(e.target.value)}
               disabled={isRunning}
             />
           </div>

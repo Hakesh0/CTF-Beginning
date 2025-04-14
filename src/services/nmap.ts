@@ -69,13 +69,13 @@ export async function performNmapScan(target: string, command: string, outputPat
       // Save the output to the specified file
       try {
         const dirname = path.dirname(outputPath);
-        await fs.mkdir(dirname, { recursive: true });
-        await fs.writeFile(outputPath, stdout || stderr, 'utf8');
-        resolve({
-          target: target,
-          command: command,
-          output: `Scan completed and output saved to ${outputPath}`,
-        });
+         await fs.writeFile(outputPath, stdout, 'utf8');
+         console.log(`Scan output saved to ${outputPath}`);
+          resolve({
+            target: target,
+            command: command,
+            output: `Scan completed and output saved to ${outputPath}`,
+          });
       } catch (saveError: any) {
         console.error(`Failed to save scan output to ${outputPath}:`, saveError);
         resolve({
@@ -109,3 +109,4 @@ export async function performNmapScan(target: string, command: string, outputPat
 
   return promise;
 }
+

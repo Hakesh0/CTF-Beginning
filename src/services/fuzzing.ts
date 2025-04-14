@@ -92,3 +92,4 @@ export async function performFuzzing(url: string, tool: string): Promise<Fuzzing
 
   return promise;
 }
+

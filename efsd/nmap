@@ -1,0 +1,2 @@
+Error: Command failed: nmap -sC -sV -p- 10.10.114.12
+/bin/sh: line 1: nmap: command not found

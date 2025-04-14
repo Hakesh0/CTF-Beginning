@@ -80,17 +80,17 @@ const NmapPage = () => {
     setIsRunning(true);
 
     try {
-      term.current?.writeln(`Starting Nmap scan on ${target} with command: ${command}\r\n`);
       const process = performNmapScan(target, command);
       setCurrentProcess(process);
       const result = await process;
 
       term.current?.writeln(result.output);
-      term.current?.writeln('\r\nNmap scan completed.\r\n');
 
       // Save the output to the specified file
       const filePath = `${outputPath}/nmap`;
       await saveScanOutput(result.output, filePath);
+
+      term.current?.writeln(`\r\nNmap scan completed. Output saved to ${filePath}\r\n`);
       toast({
         title: "Success",
         description: `Nmap scan completed and output saved to ${filePath}`,
@@ -188,3 +188,5 @@ const NmapPage = () => {
 };
 
 export default NmapPage;
+
+    

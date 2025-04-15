@@ -63,18 +63,23 @@ export async function performNmapScan(target: string, command: string, outputPat
        console.log(`Executing: ${nmapCommand}`);
       const { stdout, stderr } = await execAsync(nmapCommand, { signal });
 
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-      }
+       try {
+         fs.writeFileSync(outputPath, stdout);
+         console.log(`✅ Nmap scan complete. Output saved to: ${outputPath}`);
+         resolve({
+           target: target,
+           command: command,
+           output: `Nmap scan completed. Output saved to: ${outputPath}`,
+         });
+       } catch (saveError: any) {
+         console.error(`❌ Failed to save scan output to ${outputPath}:`, saveError);
+         resolve({
+           target: target,
+           command: command,
+           output: `Nmap scan failed: ${saveError.message}. Stderr: ${stdout}`,
+         });
 
-       fs.writeFileSync(outputPath, stdout);
-
-        resolve({
-          target: target,
-          command: command,
-          output: `Nmap scan completed. Output saved to:  ${outputPath}`,
-        });
-
+       }
 
     } catch (error: any) {
       if (error.name === 'AbortError') {

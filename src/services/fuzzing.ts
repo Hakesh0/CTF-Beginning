@@ -1,6 +1,8 @@
 'use server';
 
 import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 
 let execAsync: any;
 
@@ -36,7 +38,7 @@ export interface FuzzingResult {
  * @param tool The fuzzing tool to use.
  * @returns A promise that resolves to a FuzzingResult object.
  */
-export async function performFuzzing(url: string, tool: string): Promise<FuzzingResult> {
+export async function performFuzzing(url: string, tool: string, outputPath: string): Promise<FuzzingResult> {
   if (!execAsync) {
     await initialize();
   }
@@ -46,27 +48,36 @@ export async function performFuzzing(url: string, tool: string): Promise<Fuzzing
 
   const promise = new Promise<FuzzingResult>(async (resolve, reject) => {
     try {
-      if (!execAsync) {
-        console.error('execAsync is not initialized.  This indicates an issue with the environment.');
-        resolve({
-          url: url,
-          tool: tool,
-          output: 'Error: Server environment not properly initialized.',
-        });
-        return;
-      }
+       if (!execAsync) {
+         console.error('execAsync is not initialized.  This indicates an issue with the environment.');
+         resolve({
+           url: url,
+           tool: tool,
+           output: 'Error: Server environment not properly initialized.',
+         });
+         return;
+       }
 
-      const { stdout, stderr } = await execAsync(`${tool} -u ${url}`, { signal });
+       const nmapCommand = `${tool} -u ${url}`;
+        console.log(`Executing: ${nmapCommand}`);
+       const { stdout, stderr } = await execAsync(nmapCommand, { signal });
 
-      if (stderr) {
-        console.error(`${tool} produced an error:`, stderr);
-      }
-
-      resolve({
-        url: url,
-        tool: tool,
-        output: stdout || stderr,
-      });
+        try {
+          const dirname = path.dirname(outputPath);
+          await fs.mkdir(dirname, { recursive: true });
+          await fs.writeFile(outputPath, stdout, 'utf8');
+          resolve({
+            url: url,
+            tool: tool,
+            output: `Fuzzing completed. Output saved to: ${outputPath}`,
+          });
+        } catch (saveError: any) {
+          resolve({
+            url: url,
+            tool: tool,
+            output: `Fuzzing completed, but failed to save output to ${outputPath}: ${saveError.message}`,
+          });
+        }
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log(`${tool} was aborted by the user.`);
@@ -92,4 +103,5 @@ export async function performFuzzing(url: string, tool: string): Promise<Fuzzing
 
   return promise;
 }
+
 

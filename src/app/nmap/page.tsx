@@ -15,7 +15,13 @@ let FitAddon: any;
 const NmapPage = () => {
   const [target, setTarget] = useState('');
   const [command, setCommand] = useState('nmap -sC -sV -p-');
-  const [outputPath, setOutputPath] = useState('');
+    const [outputPath, setOutputPath] = useState<string>(() => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem('nmapOutputPath') || '/home/kali/Desktop/';
+      }
+      return '/home/kali/Desktop/';
+    });
+
   const [loading, setLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -66,40 +72,33 @@ const NmapPage = () => {
       return;
     }
 
-    if (!outputPath) {
-      term.current?.writeln('Please enter an output file path.');
-      toast({
-        title: "Error",
-        description: 'Please enter an output file path.',
-      });
-      return;
-    }
-
+   const filePath = `${outputPath}nmap`;
     setLoading(true);
     setIsRunning(true);
 
     try {
-      const result = await performNmapScan(target, command, outputPath);
-
-       term.current?.writeln(`Scan completed and output saved to ${outputPath}`);
-        toast({
-          title: "Success",
-          description: `Nmap scan completed. Output read from ${outputPath}`,
-        });
-
+      const process = performNmapScan(target, command, filePath);
+      setCurrentProcess(process);
+      const result = await process;
+      term.current?.writeln(result.output);
+      term.current?.writeln(`\r\nNmap scan completed.\r\n`);
+      toast({
+        title: "Success",
+        description: `Nmap scan completed. Output read from ${filePath}`,
+      });
 
     } catch (error: any) {
-       term.current?.writeln(`Error: ${error.message}`);
-       toast({
-         title: "Error",
-         description: `Nmap scan failed: ${error.message}`,
-       });
-     } finally {
-       setLoading(false);
-       setIsRunning(false);
-       setCurrentProcess(null);
-     }
-   };
+      term.current?.writeln(`Error: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Nmap scan failed: ${error.message}`,
+      });
+    } finally {
+      setLoading(false);
+      setIsRunning(false);
+      setCurrentProcess(null);
+    }
+  };
 
   const handleInterrupt = () => {
     if (currentProcess) {
@@ -109,6 +108,11 @@ const NmapPage = () => {
       setLoading(false);
     }
   };
+    const handleOutputPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newPath = e.target.value;
+      setOutputPath(newPath);
+      localStorage.setItem('nmapOutputPath', newPath);
+    };
 
   return (
     <div className="flex flex-col items-center p-4">
@@ -144,7 +148,7 @@ const NmapPage = () => {
               id="outputPath"
               placeholder="Enter output file path"
               value={outputPath}
-              onChange={(e) => setOutputPath(e.target.value)}
+              onChange={handleOutputPathChange}
               disabled={isRunning}
             />
           </div>

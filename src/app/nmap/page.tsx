@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { performNmapScan } from '@/services/nmap';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import 'xterm/css/xterm.css';
-import { toast } from '@/hooks/use-toast';
+ import { useState, useRef, useEffect } from 'react';
+ import { performNmapScan } from '@/services/nmap';
+ import { Button } from '@/components/ui/button';
+ import { Input } from '@/components/ui/input';
+ import { Label } from '@/components/ui/label';
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+ import 'xterm/css/xterm.css';
+ import { toast } from '@/hooks/use-toast';
+ import { saveScanOutput } from '@/services/utils';
+ 
 
-let Terminal: any;
-let FitAddon: any;
+ let Terminal: any;
+ let FitAddon: any;
 
-const NmapPage = () => {
+ const NmapPage = () => {
   const [target, setTarget] = useState('');
   const [command, setCommand] = useState('nmap -sC -sV -p-');
     const [outputPath, setOutputPath] = useState<string>(() => {
@@ -77,11 +79,18 @@ const NmapPage = () => {
     setIsRunning(true);
 
     try {
-      const process = performNmapScan(target, command, filePath);
+      const process = performNmapScan(target, command);
       setCurrentProcess(process);
       const result = await process;
-      term.current?.writeln(result.output);
-      term.current?.writeln(`\r\nNmap scan completed.\r\n`);
+
+                term.current?.writeln(result.output);
+        term.current?.writeln(`\r\nNmap scan completed.\r\n`);
+        toast({
+          title: "Success",
+          description: `Nmap scan completed. Output read from ${filePath}`,
+        });
+      await saveScanOutput(result.output, filePath);
+       term.current?.writeln(`Scan completed and output saved to ${filePath}`);
       toast({
         title: "Success",
         description: `Nmap scan completed. Output read from ${filePath}`,
@@ -181,6 +190,39 @@ const NmapPage = () => {
       </Card>
     </div>
   );
-};
+ };
 
-export default NmapPage;
+ export default NmapPage;
+ 
+
+ 
+ 'use server';
+
+ import fs from 'fs/promises';
+ import path from 'path';
+
+ export async function saveScanOutput(output: string, filePath: string): Promise<void> {
+  try {
+    const dirname = path.dirname(filePath);
+    await fs.mkdir(dirname, { recursive: true });
+ 
+
+    await fs.writeFile(filePath, output, 'utf8');
+    console.log(`Scan output saved to ${filePath}`);
+  } catch (error: any) {
+    console.error(`Failed to save scan output to ${filePath}:`, error);
+    throw new Error(`Failed to save scan output: ${error.message}`);
+  }
+ }
+ 
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 

@@ -79,30 +79,27 @@ const NmapPage = () => {
     setIsRunning(true);
 
     try {
-      const filePath = `${outputPath}/nmap`;
-      const process = performNmapScan(target, command, filePath);
-      setCurrentProcess(process);
-      const result = await process;
+      const result = await performNmapScan(target, command, outputPath);
 
-      term.current?.writeln(result.output);
-      term.current?.writeln(`\r\nNmap scan completed.\r\n`);
-      toast({
-        title: "Success",
-        description: `Nmap scan completed and output saved to ${filePath}`,
-      });
+       term.current?.writeln(`Scan completed and output saved to ${outputPath}`);
+        toast({
+          title: "Success",
+          description: `Nmap scan completed. Output read from ${outputPath}`,
+        });
+
 
     } catch (error: any) {
-      term.current?.writeln(`Error: ${error.message}`);
-      toast({
-        title: "Error",
-        description: `Nmap scan failed: ${error.message}`,
-      });
-    } finally {
-      setLoading(false);
-      setIsRunning(false);
-      setCurrentProcess(null);
-    }
-  };
+       term.current?.writeln(`Error: ${error.message}`);
+       toast({
+         title: "Error",
+         description: `Nmap scan failed: ${error.message}`,
+       });
+     } finally {
+       setLoading(false);
+       setIsRunning(false);
+       setCurrentProcess(null);
+     }
+   };
 
   const handleInterrupt = () => {
     if (currentProcess) {

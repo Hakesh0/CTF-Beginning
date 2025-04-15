@@ -25,10 +25,6 @@ export interface NmapScanResult {
    * The command that was executed.
    */
   command: string;
-  /**
-   * The raw output from Nmap.
-   */
-  output: string;
 }
 
 /**
@@ -37,7 +33,7 @@ export interface NmapScanResult {
  * @param target The IP address or domain to scan.
  * @param command The Nmap command to execute.
  * @param outputPath The path to the file where the output should be saved.
- * @returns A promise that resolves to an NmapScanResult object.
+ * @returns A promise that resolves when the scan is complete.
  */
 export async function performNmapScan(target: string, command: string, outputPath: string): Promise<NmapScanResult> {
   return new Promise((resolve, reject) => {
@@ -50,7 +46,6 @@ export async function performNmapScan(target: string, command: string, outputPat
         reject({
           target: target,
           command: command,
-          output: `Error: ${error.message}`,
         });
         return;
       }
@@ -66,14 +61,12 @@ export async function performNmapScan(target: string, command: string, outputPat
         resolve({
           target: target,
           command: command,
-          output: `Nmap scan complete. Output saved to: ${outputPath}`,
         });
       } catch (err: any) {
         console.error(`❌ Error writing to file: ${err.message}`);
         reject({
           target: target,
           command: command,
-          output: `Error writing to file: ${err.message}`,
         });
       }
     });

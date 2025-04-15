@@ -60,21 +60,22 @@ export async function performNmapScan(target: string, command: string, outputPat
       }
 
       const nmapCommand = `${command} ${target}`;
+       console.log(`Executing: ${nmapCommand}`);
       const { stdout, stderr } = await execAsync(nmapCommand, { signal });
 
       if (stderr) {
         console.error(`stderr: ${stderr}`);
       }
-
        const dirname = path.dirname(outputPath);
-       await fs.promises.mkdir(dirname, { recursive: true });
-       await fs.promises.writeFile(outputPath, stdout, 'utf8');
+        fs.mkdirSync(dirname, { recursive: true });
+        fs.writeFileSync(outputPath, stdout);
+        resolve({
+          target: target,
+          command: command,
+          output: `Scan completed. Output saved to: ${outputPath}`,
+        });
 
-      resolve({
-        target: target,
-        command: command,
-        output: `Scan completed. Output saved to: ${outputPath}`,
-      });
+
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Nmap scan was aborted by the user.');

@@ -25,6 +25,10 @@ export interface NmapScanResult {
    * The command that was executed.
    */
   command: string;
+  /**
+   * The raw output from the fuzzing tool.
+   */
+  output: string;
 }
 
 /**
@@ -36,39 +40,63 @@ export interface NmapScanResult {
  * @returns A promise that resolves when the scan is complete.
  */
 export async function performNmapScan(target: string, command: string, outputPath: string): Promise<NmapScanResult> {
-  return new Promise((resolve, reject) => {
-    const fullCommand = `${command} ${target}`;
+  if (!execAsync) {
+    await initialize();
+  }
 
-    const { exec } = require('child_process');
-    exec(fullCommand, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`❌ Error: ${error.message}`);
-        reject({
-          target: target,
-          command: command,
-        });
-        return;
-      }
-      if (stderr) {
-        console.error(`⚠️ stderr: ${stderr}`);
-      }
+  const abortController = new AbortController();
+  const signal = abortController.signal;
 
-      try {
-        const dirname = path.dirname(outputPath);
-        fs.mkdirSync(dirname, { recursive: true });
-        fs.writeFileSync(outputPath, stdout);
-        console.log(`✅ Nmap scan complete. Output saved to: ${outputPath}`);
+  const promise = new Promise<NmapScanResult>(async (resolve, reject) => {
+    try {
+      if (!execAsync) {
+        console.error('execAsync is not initialized.  This indicates an issue with the environment.');
         resolve({
           target: target,
           command: command,
+          output: 'Error: Server environment not properly initialized.',
         });
-      } catch (err: any) {
-        console.error(`❌ Error writing to file: ${err.message}`);
-        reject({
+        return;
+      }
+
+      const nmapCommand = `${command} ${target}`;
+      const { stdout, stderr } = await execAsync(nmapCommand, { signal });
+
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+      }
+
+       const dirname = path.dirname(outputPath);
+       await fs.promises.mkdir(dirname, { recursive: true });
+       await fs.promises.writeFile(outputPath, stdout, 'utf8');
+
+      resolve({
+        target: target,
+        command: command,
+        output: `Scan completed. Output saved to: ${outputPath}`,
+      });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Nmap scan was aborted by the user.');
+        resolve({
           target: target,
           command: command,
+          output: 'Nmap scan was aborted.',
+        });
+      } else {
+        console.error(`❌ Error: ${error.message}`);
+        resolve({
+          target: target,
+          command: command,
+          output: `Nmap scan failed: ${error.message}`,
         });
       }
-    });
+    }
   });
+
+  (promise as any).cancel = () => {
+    abortController.abort();
+  };
+
+  return promise;
 }

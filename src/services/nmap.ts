@@ -66,13 +66,13 @@ export async function performNmapScan(target: string, command: string, outputPat
       if (stderr) {
         console.error(`stderr: ${stderr}`);
       }
-       const dirname = path.dirname(outputPath);
-        fs.mkdirSync(dirname, { recursive: true });
-        fs.writeFileSync(outputPath, stdout);
+
+       fs.writeFileSync(outputPath, stdout);
+
         resolve({
           target: target,
           command: command,
-          output: `Scan completed. Output saved to: ${outputPath}`,
+          output: `Nmap scan completed. Output saved to:  ${outputPath}`,
         });
 
 

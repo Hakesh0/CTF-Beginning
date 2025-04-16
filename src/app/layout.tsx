@@ -1,12 +1,11 @@
-'use client'
 
-import type {Metadata} from 'next';
+import type {Metadata} from 'next/server';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import {Toaster} from "@/components/ui/toaster"
 import {Sidebar, SidebarContent, SidebarInset, SidebarProvider} from "@/components/ui/sidebar"
 import Navbar from '@/components/Navbar';
-import { useState } from 'react';
+import {metadata} from './metadata';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -18,27 +17,21 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'CTF Toolkit',
-  description: 'A toolkit for solving CTF challenges.',
-};
+export {metadata};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-    const [showNavbar, setShowNavbar] = useState(true);
 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <SidebarProvider>
-              {showNavbar && (
-                  <Sidebar collapsible="icon">
-                    <Navbar />
-                  </Sidebar>
-              )}
+              <Sidebar collapsible="icon">
+                  <Navbar />
+              </Sidebar>
               <SidebarInset>
                   {children}
                   <Toaster/>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import {useState} from 'react';
 
 const Navbar = () => {
   const navItems = [
@@ -8,6 +9,8 @@ const Navbar = () => {
     { href: '/nmap', label: 'Nmap' },
     { href: '/fuzzing', label: 'Fuzzing' },
   ];
+
+  const [showNavbar, setShowNavbar] = useState(true);
 
   return (
     <nav className="flex-col p-4">
@@ -28,4 +31,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 

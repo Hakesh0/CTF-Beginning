@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import 'xterm/css/xterm.css';
 import { toast } from '@/hooks/use-toast';
 import path from 'path';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { X } from "lucide-react"
+import { Textarea } from '@/components/ui/textarea';
 
 let Terminal: any;
 let FitAddon: any;
@@ -131,7 +131,8 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
       setCurrentProcess(process);
       const result = await process;
 
-      setScanResult(`Scan completed and output saved to ${filePath}`);
+      const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
+      setScanResult(fileContent);
       toast({
         title: "Success",
         description: `Nmap scan completed and output saved to ${filePath}`,
@@ -143,8 +144,6 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
         description: `Nmap scan failed: ${error.message}`,
       });
     } finally {
-        const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
-        setScanResult(fileContent);
       setLoading(false);
       setIsRunning(false);
       setCurrentProcess(null);
@@ -164,7 +163,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
   };
 
   return (
-    
+    <>
       <div className="grid gap-2">
         <Label htmlFor={`target-${tabId}`}>Target</Label>
         <Input
@@ -217,7 +216,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
           style={{ height: '400px' }}
         />
       </div>
-    
+    </>
   );
 };
 

@@ -10,9 +10,15 @@ import 'xterm/css/xterm.css';
 import { toast } from '@/hooks/use-toast';
 import path from 'path';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X, RotateCcw } from "lucide-react"
+import { X, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { Textarea } from '@/components/ui/textarea';
 import {Icons} from "@/components/icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 let Terminal: any;
 let FitAddon: any;
@@ -118,6 +124,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
   const [loading, setLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [currentProcess, setCurrentProcess] = useState<any>(null);
+  const [showOutput, setShowOutput] = useState(true);
 
   const handleNmapScan = async () => {
     if (!target) {
@@ -141,10 +148,10 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
     setScanResult('');
 
     try {
-      const filePath = path.join(outputPath, 'nmap_output.txt');
+      const filePath = path.join(outputPath, `nmap_${tabId}.txt`);
       const process = performNmapScan(target, command, filePath);
       setCurrentProcess(process);
-      const result = await process;
+      await process;
       const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
       setScanResult(fileContent);
       toast({
@@ -219,17 +226,31 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
         >
           Interrupt
         </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setShowOutput(!showOutput)}>
+                {showOutput ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Toggle Output Visibility
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
-      <div className="grid gap-2">
-        <Label>Output</Label>
-        <Textarea
-          readOnly
-          className="resize-none bg-secondary"
-          value={scanResult}
-          placeholder="Nmap scan output will be displayed here."
-          style={{ height: '400px' }}
-        />
-      </div>
+      {showOutput && (
+        <div className="grid gap-2">
+          <Label>Output</Label>
+          <Textarea
+            readOnly
+            className="resize-none bg-secondary"
+            value={scanResult}
+            placeholder="Nmap scan output will be displayed here."
+            style={{ height: '400px' }}
+          />
+        </div>
+      )}
     </div>
   );
 };

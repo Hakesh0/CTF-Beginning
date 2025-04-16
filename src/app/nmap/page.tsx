@@ -10,24 +10,99 @@ import { Textarea } from '@/components/ui/textarea';
 import 'xterm/css/xterm.css';
 import { toast } from '@/hooks/use-toast';
 import path from 'path';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { X } from "lucide-react"
 
 let Terminal: any;
 let FitAddon: any;
 
 const NmapPage = () => {
-  const [target, setTarget] = useState('');
-  const [command, setCommand] = useState('nmap -sC -sV -p-');
-  const [outputPath, setOutputPath] = useState('');
+  const [tabs, setTabs] = useState([{ id: 'tab1', target: '', command: 'nmap -sC -sV -p-', outputPath: '' }]);
+  const [activeTab, setActiveTab] = useState('tab1');
+
+  const addTab = () => {
+    const newTabId = `tab${tabs.length + 1}`;
+    setTabs([...tabs, { id: newTabId, target: '', command: 'nmap -sC -sV -p-', outputPath: '' }]);
+    setActiveTab(newTabId);
+  };
+
+  const removeTab = (tabId: string) => {
+    if (tabs.length <= 1) return;
+    const newTabs = tabs.filter((tab) => tab.id !== tabId);
+    setTabs(newTabs);
+    setActiveTab(newTabs[0].id);
+  };
+
+  const updateTab = (tabId: string, field: string, value: string) => {
+    setTabs(tabs.map(tab => tab.id === tabId ? { ...tab, [field]: value } : tab));
+  };
+
+  return (
+    <div className="flex flex-col items-center p-4">
+      <Card className="w-full max-w-5xl">
+        <CardHeader>
+          <CardTitle>Nmap Scan</CardTitle>
+          <CardDescription>Perform an Nmap scan on a given IP address or domain.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Tabs defaultValue={activeTab} className="w-full">
+            <TabsList>
+              {tabs.map((tab) => (
+                <TabsTrigger value={tab.id} key={tab.id}>
+                  {tab.id}
+                  {tabs.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => removeTab(tab.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </TabsTrigger>
+              ))}
+              <Button variant="outline" size="sm" onClick={addTab}>
+                Add New Scan
+              </Button>
+            </TabsList>
+            {tabs.map((tab) => (
+              <TabsContent value={tab.id} key={tab.id}>
+                <NmapTabContent
+                  tabId={tab.id}
+                  target={tabs.find(t => t.id === tab.id)?.target || ''}
+                  command={tabs.find(t => t.id === tab.id)?.command || ''}
+                  outputPath={tabs.find(t => t.id === tab.id)?.outputPath || ''}
+                  updateTab={updateTab}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+interface NmapTabContentProps {
+  tabId: string;
+  target: string;
+  command: string;
+  outputPath: string;
+  updateTab: (tabId: string, field: string, value: string) => void;
+}
+
+const NmapTabContent: React.FC<NmapTabContentProps> = ({
+  tabId,
+  target,
+  command,
+  outputPath,
+  updateTab,
+}) => {
   const [scanResult, setScanResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const term = useRef<any | null>(null);
-  const fitAddon = useRef<any>(null);
   const [currentProcess, setCurrentProcess] = useState<any>(null);
-
-  useEffect(() => {
-  }, []);
 
   const handleNmapScan = async () => {
     if (!target) {
@@ -56,23 +131,13 @@ const NmapPage = () => {
       setCurrentProcess(process);
       const result = await process;
 
-      if (result.output) {
-        setScanResult(result.output);
-        toast({
-          title: "Error",
-          description: result.output,
-        });
-      } else {
-        // Read the content of the file and set it to scanResult
-        const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
-        setScanResult(fileContent);
-        toast({
-          title: "Success",
-          description: `Nmap scan completed and output saved to ${filePath}`,
-        });
-      }
+      setScanResult(`Scan completed and output saved to ${filePath}`);
+      toast({
+        title: "Success",
+        description: `Nmap scan completed and output saved to ${filePath}`,
+      });
     } catch (error: any) {
-       setScanResult(`Error: ${error.message}`);
+      setScanResult(`Error: ${error.message}`);
       toast({
         title: "Error",
         description: `Nmap scan failed: ${error.message}`,
@@ -97,69 +162,62 @@ const NmapPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <Card className="w-full max-w-3xl">
-        <CardHeader>
-          <CardTitle>Nmap Scan</CardTitle>
-          <CardDescription>Perform an Nmap scan on a given IP address or domain.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="target">Target</Label>
-            <Input
-              id="target"
-              placeholder="Enter IP address or domain"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              disabled={isRunning}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="command">Command</Label>
-            <Input
-              id="command"
-              className="resize-none"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              disabled={isRunning}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="outputPath">Output File Path</Label>
-            <Input
-              id="outputPath"
-              placeholder="Enter output file path"
-              value={outputPath}
-              onChange={(e) => setOutputPath(e.target.value)}
-              disabled={isRunning}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleNmapScan} disabled={loading || isRunning}>
-              {loading ? 'Scanning...' : 'Start Scan'}
-            </Button>
-            <Button
-              onClick={handleInterrupt}
-              disabled={!isRunning}
-              variant="destructive"
-            >
-              Interrupt
-            </Button>
-          </div>
-          <div className="grid gap-2">
-            <Label>Output</Label>
-            <Textarea
-              readOnly
-              className="resize-none bg-secondary"
-              value={scanResult}
-              placeholder="Nmap scan output will be displayed here."
-              style={{ height: '400px' }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor={`target-${tabId}`}>Target</Label>
+        <Input
+          id={`target-${tabId}`}
+          placeholder="Enter IP address or domain"
+          value={target}
+          onChange={(e) => updateTab(tabId, 'target', e.target.value)}
+          disabled={isRunning}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`command-${tabId}`}>Command</Label>
+        <Input
+          id={`command-${tabId}`}
+          className="resize-none"
+          value={command}
+          onChange={(e) => updateTab(tabId, 'command', e.target.value)}
+          disabled={isRunning}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`outputPath-${tabId}`}>Output File Path</Label>
+        <Input
+          id={`outputPath-${tabId}`}
+          placeholder="Enter output file path"
+          value={outputPath}
+          onChange={(e) => updateTab(tabId, 'outputPath', e.target.value)}
+          disabled={isRunning}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={handleNmapScan} disabled={loading || isRunning}>
+          {loading ? 'Scanning...' : 'Start Scan'}
+        </Button>
+        <Button
+          onClick={handleInterrupt}
+          disabled={!isRunning}
+          variant="destructive"
+        >
+          Interrupt
+        </Button>
+      </div>
+      <div className="grid gap-2">
+        <Label>Output</Label>
+        <Textarea
+          readOnly
+          className="resize-none bg-secondary"
+          value={scanResult}
+          placeholder="Nmap scan output will be displayed here."
+          style={{ height: '400px' }}
+        />
+      </div>
     </div>
   );
 };
 
 export default NmapPage;
+

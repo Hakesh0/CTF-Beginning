@@ -13,14 +13,14 @@ const Navbar = () => {
     { href: '/fuzzing', label: 'Fuzzing' },
   ];
 
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, state } = useSidebar();
 
   return (
     <nav className="flex-col p-4">
       <Button variant="ghost" size="icon" onClick={toggleSidebar}>
         <PanelLeft className="h-4 w-4" />
       </Button>
-      <ul className="flex flex-col space-y-2">
+      <ul className={`flex flex-col space-y-2 ${state === 'collapsed' ? 'hidden' : ''}`}>
         {navItems.map((item) => (
           <li key={item.href}>
             <Link

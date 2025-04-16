@@ -97,7 +97,7 @@ const FuzzingPage = () => {
   };
 
   return (
-    
+    <div className="flex justify-center items-start h-full pt-8">
       <Card className="w-full max-w-3xl">
         <CardHeader>
           <CardTitle>Fuzzing</CardTitle>
@@ -164,7 +164,7 @@ const FuzzingPage = () => {
           </div>
         </CardContent>
       </Card>
-    
+    </div>
   );
 };
 

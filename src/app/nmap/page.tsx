@@ -12,6 +12,7 @@ import path from 'path';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { X } from "lucide-react"
 import { Textarea } from '@/components/ui/textarea';
+import {Icons} from "@/components/icons";
 
 let Terminal: any;
 let FitAddon: any;
@@ -38,7 +39,7 @@ const NmapPage = () => {
   };
 
   return (
-    
+    <div className="flex justify-center items-start h-full pt-8">
       <Card className="w-full max-w-5xl">
         <CardHeader>
           <CardTitle>Nmap Scan</CardTitle>
@@ -55,7 +56,7 @@ const NmapPage = () => {
                       className="ml-2 rounded-md p-1 hover:bg-gray-200 cursor-pointer"
                       onClick={() => removeTab(tab.id)}
                     >
-                      <X className="h-4 w-4" />
+                      <Icons.close className="h-4 w-4" />
                     </span>
                   )}
                 </TabsTrigger>
@@ -65,7 +66,7 @@ const NmapPage = () => {
               </Button>
             </TabsList>
             {tabs.map((tab) => (
-              <TabsContent value={tab.id} key={tab.id}>
+              <TabsContent value={tab.id} key={tab.id} className="mt-4">
                 <NmapTabContent
                   tabId={tab.id}
                   target={tabs.find(t => t.id === tab.id)?.target || ''}
@@ -78,7 +79,7 @@ const NmapPage = () => {
           </Tabs>
         </CardContent>
       </Card>
-    
+    </div>
   );
 };
 
@@ -128,6 +129,12 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
       const process = performNmapScan(target, command, filePath);
       setCurrentProcess(process);
       const result = await process;
+      const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
+      setScanResult(fileContent);
+      toast({
+        title: "Success",
+        description: `Nmap scan completed and output saved to ${filePath}`,
+      });
     } catch (error: any) {
       setScanResult(`Error: ${error.message}`);
       toast({
@@ -154,7 +161,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
   };
 
   return (
-    <>
+    <div className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor={`target-${tabId}`}>Target</Label>
         <Input
@@ -207,7 +214,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
           style={{ height: '400px' }}
         />
       </div>
-    </>
+    </div>
   );
 };
 

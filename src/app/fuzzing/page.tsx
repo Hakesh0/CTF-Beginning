@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import 'xterm/css/xterm.css';
-import { toast } from '@/hooks/use-toast';
 
 let Terminal: any;
 let FitAddon: any;
@@ -22,13 +21,6 @@ const FuzzingPage = () => {
   const term = useRef<any | null>(null);
   const fitAddon = useRef<any>(null);
   const [currentProcess, setCurrentProcess] = useState<any>(null);
-    const [outputPath, setOutputPath] = useState<string>(() => {
-      if (typeof window !== 'undefined') {
-        return localStorage.getItem('fuzzingOutputPath') || '/home/kali/Desktop/';
-      }
-      return '/home/kali/Desktop/';
-    });
-
 
   const tools = ['ffuf', 'wfuzz', 'gobuster'];
 
@@ -74,10 +66,6 @@ const FuzzingPage = () => {
   const handleFuzzing = async () => {
     if (selectedTools.length === 0) {
       term.current?.writeln('Please select at least one fuzzing tool.');
-      toast({
-        title: "Error",
-        description: 'Please select at least one fuzzing tool.',
-      });
       return;
     }
 
@@ -86,19 +74,13 @@ const FuzzingPage = () => {
 
     try {
       for (const tool of selectedTools) {
-         const filePath = `${outputPath}${tool}`; // Construct the output file path
-         term.current?.writeln(`Starting ${tool} on ${url}\r\n`);
-         const process = performFuzzing(url, tool, filePath);
+        term.current?.writeln(`Starting ${tool} on ${url}\r\n`);
+        const process = performFuzzing(url, tool);
         setCurrentProcess(process);
         const result = await process;
 
         term.current?.writeln(result.output);
         term.current?.writeln(`\r\n${tool} completed.\r\n`);
-         term.current?.writeln(`Scan completed and output saved to ${filePath}`);
-                toast({
-                  title: "Success",
-                  description: `Fuzzing completed. Output read from ${filePath}`,
-                });
 
       }
     } catch (error: any) {
@@ -118,11 +100,6 @@ const FuzzingPage = () => {
       setLoading(false);
     }
   };
-    const handleOutputPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newPath = e.target.value;
-      setOutputPath(newPath);
-      localStorage.setItem('fuzzingOutputPath', newPath);
-    };
 
   return (
     <div className="flex flex-col items-center p-4">
@@ -139,16 +116,6 @@ const FuzzingPage = () => {
               placeholder="Enter URL with FUZZ keyword (e.g., http://ip.com/FUZZ)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              disabled={isRunning}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="outputPath">Output File Path</Label>
-            <Input
-              id="outputPath"
-              placeholder="Enter output file path"
-              value={outputPath}
-              onChange={handleOutputPathChange}
               disabled={isRunning}
             />
           </div>
@@ -200,4 +167,3 @@ const FuzzingPage = () => {
 };
 
 export default FuzzingPage;
-

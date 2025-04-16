@@ -1,188 +1,165 @@
 'use client';
 
- import { useState, useRef, useEffect } from 'react';
- import { performNmapScan } from '@/services/nmap';
- import { Button } from '@/components/ui/button';
- import { Input } from '@/components/ui/input';
- import { Label } from '@/components/ui/label';
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-  import 'xterm/css/xterm.css';
-  import { toast } from '@/hooks/use-toast';
-  import path from 'path';
+import { useState, useRef, useEffect } from 'react';
+import { performNmapScan } from '@/services/nmap';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import 'xterm/css/xterm.css';
+import { toast } from '@/hooks/use-toast';
+import path from 'path';
 
-  let fs: any;
+let Terminal: any;
+let FitAddon: any;
 
-  if (typeof window === 'undefined') {
-    fs = await import('fs/promises');
-  }
+const NmapPage = () => {
+  const [target, setTarget] = useState('');
+  const [command, setCommand] = useState('nmap -sC -sV -p-');
+  const [outputPath, setOutputPath] = useState('');
+  const [scanResult, setScanResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const term = useRef<any | null>(null);
+  const fitAddon = useRef<any>(null);
+  const [currentProcess, setCurrentProcess] = useState<any>(null);
 
+  useEffect(() => {
+  }, []);
 
-  let Terminal: any;
-  let FitAddon: any;
-  const NmapPage = () => {
-   const [target, setTarget] = useState('');
-   const [command, setCommand] = useState('nmap -sC -sV -p-');
-   const [output, setOutput] = useState('');
-   const [loading, setLoading] = useState(false);
-   const terminalRef = useRef<HTMLDivElement>(null);
-   const term = useRef<any | null>(null);
-   const fitAddon = useRef<any>(null);
-   const [isRunning, setIsRunning] = useState(false);
-   const [currentProcess, setCurrentProcess] = useState<any>(null);
-   const [outputPath, setOutputPath] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-     return localStorage.getItem('nmapOutputPath') || '/home/kali/Desktop/';
-    }
-    return '/home/kali/Desktop/';
-   });
-
-   useEffect(() => {
-    const initTerminal = async () => {
-     Terminal = (await import('xterm')).Terminal;
-     FitAddon = (await import('xterm-addon-fit')).FitAddon;
-     fitAddon.current = new FitAddon();
-     if (terminalRef.current) {
-      term.current = new Terminal({
-       theme: {
-        background: '#2E3440',
-        foreground: '#D8DEE9',
-        cursor: '#D8DEE9',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
-       },
-       fontFamily: 'Menlo, monospace',
-       fontSize: 12,
-       cursorStyle: 'bar',
-       cursorBlink: true,
-      });
-      term.current.loadAddon(fitAddon.current);
-      term.current.open(terminalRef.current);
-      fitAddon.current.fit();
-     }
-    };
-
-    if (typeof window !== 'undefined') {
-     initTerminal();
-    }
-
-    return () => {
-     term.current?.dispose();
-    };
-   }, []);
-
-   const handleNmapScan = async () => {
+  const handleNmapScan = async () => {
     if (!target) {
-     term.current?.writeln('Please enter a target IP address or domain.');
-     toast({
-      title: "Error",
-      description: 'Please enter a target IP address or domain.',
-     });
-     return;
+      toast({
+        title: "Error",
+        description: 'Please enter a target IP address or domain.',
+      });
+      return;
     }
+
     if (!outputPath) {
-     term.current?.writeln('Please enter an output file path.');
-     toast({
-      title: "Error",
-      description: 'Please enter an output file path.',
-     });
-     return;
+      toast({
+        title: "Error",
+        description: 'Please enter an output file path.',
+      });
+      return;
     }
 
     setLoading(true);
     setIsRunning(true);
+    setScanResult('');
 
     try {
-     const filePath = `${outputPath}/nmap`;
-     term.current?.writeln(`Starting Nmap scan on ${target}\r\n`);
-     const process = performNmapScan(target, command, filePath);
-     setCurrentProcess(process);
-     const result = await process;
-     term.current?.writeln(`Scan completed and output saved to ${filePath}\r\n`);
-     const fileContent = await fs.readFile(filePath, 'utf-8');
-     term.current?.writeln(fileContent);
-     toast({
-      title: "Success",
-      description: `Nmap scan completed. Output read from ${filePath}`,
-     });
+      const filePath = path.join(outputPath, 'nmap_output.txt');
+      const process = performNmapScan(target, command, filePath);
+      setCurrentProcess(process);
+      const result = await process;
 
+      if (result.output) {
+        setScanResult(result.output);
+        toast({
+          title: "Error",
+          description: result.output,
+        });
+      } else {
+        // Read the content of the file and set it to scanResult
+        const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
+        setScanResult(fileContent);
+        toast({
+          title: "Success",
+          description: `Nmap scan completed and output saved to ${filePath}`,
+        });
+      }
     } catch (error: any) {
-     term.current?.writeln(`Error: ${error.message}`);
-     toast({
-      title: "Error",
-      description: `Nmap scan failed: ${error.message}`,
-     });
+       setScanResult(`Error: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Nmap scan failed: ${error.message}`,
+      });
     } finally {
-     setLoading(false);
-     setIsRunning(false);
-     setCurrentProcess(null);
+      setLoading(false);
+      setIsRunning(false);
+      setCurrentProcess(null);
     }
-   };
-
-   const handleInterrupt = () => {
-    if (currentProcess) {
-     currentProcess.cancel();
-     term.current?.writeln('\r\nNmap scan interrupted by user.\r\n');
-     setIsRunning(false);
-     setLoading(false);
-    }
-   };
-
-   const handleOutputPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPath = e.target.value;
-    setOutputPath(newPath);
-    localStorage.setItem('nmapOutputPath', newPath);
-   };
-
-   return (
-    <>
-
-       Nmap Scan
-       Perform an Nmap scan on a given IP address or domain.
-
-       
-        Target
-        
-         Enter IP address or domain
-         
-        
-       
-       
-        Command
-        
-         
-        
-       
-       
-        Output File Path
-        
-         
-        
-       
-       
-        
-         {loading ? 'Scanning...' : 'Start Scan'}
-        
-         Interrupt
-        
-       
-       
-        Output
-        
-         
-          
-           
-            
-            
-            
-           
-          
-          {/* <div ref={terminalRef} className="terminal-container font-mono text-sm px-4 py-2" style={{ height: '400px', width: '100%' }} /> */}
-          
-         
-        
-       
-     
-    </>
-   );
   };
 
-  export default NmapPage;
+  const handleInterrupt = () => {
+    if (currentProcess) {
+      currentProcess.cancel();
+      toast({
+        title: "Info",
+        description: 'Nmap scan interrupted by user.',
+      });
+      setIsRunning(false);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center p-4">
+      <Card className="w-full max-w-3xl">
+        <CardHeader>
+          <CardTitle>Nmap Scan</CardTitle>
+          <CardDescription>Perform an Nmap scan on a given IP address or domain.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="target">Target</Label>
+            <Input
+              id="target"
+              placeholder="Enter IP address or domain"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              disabled={isRunning}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="command">Command</Label>
+            <Input
+              id="command"
+              className="resize-none"
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              disabled={isRunning}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="outputPath">Output File Path</Label>
+            <Input
+              id="outputPath"
+              placeholder="Enter output file path"
+              value={outputPath}
+              onChange={(e) => setOutputPath(e.target.value)}
+              disabled={isRunning}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleNmapScan} disabled={loading || isRunning}>
+              {loading ? 'Scanning...' : 'Start Scan'}
+            </Button>
+            <Button
+              onClick={handleInterrupt}
+              disabled={!isRunning}
+              variant="destructive"
+            >
+              Interrupt
+            </Button>
+          </div>
+          <div className="grid gap-2">
+            <Label>Output</Label>
+            <Textarea
+              readOnly
+              className="resize-none bg-secondary"
+              value={scanResult}
+              placeholder="Nmap scan output will be displayed here."
+              style={{ height: '400px' }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default NmapPage;

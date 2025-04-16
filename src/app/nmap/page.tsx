@@ -51,14 +51,12 @@ const NmapPage = () => {
                 <TabsTrigger value={tab.id} key={tab.id}>
                   {tab.id}
                   {tabs.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2"
+                    <span
+                      className="ml-2 rounded-md p-1 hover:bg-gray-200 cursor-pointer"
                       onClick={() => removeTab(tab.id)}
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </span>
                   )}
                 </TabsTrigger>
               ))}
@@ -130,13 +128,6 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
       const process = performNmapScan(target, command, filePath);
       setCurrentProcess(process);
       const result = await process;
-
-      const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
-      setScanResult(fileContent);
-      toast({
-        title: "Success",
-        description: `Nmap scan completed and output saved to ${filePath}`,
-      });
     } catch (error: any) {
       setScanResult(`Error: ${error.message}`);
       toast({

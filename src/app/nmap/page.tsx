@@ -10,7 +10,7 @@ import 'xterm/css/xterm.css';
 import { toast } from '@/hooks/use-toast';
 import path from 'path';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X } from "lucide-react"
+import { X, RotateCcw } from "lucide-react"
 import { Textarea } from '@/components/ui/textarea';
 import {Icons} from "@/components/icons";
 
@@ -20,11 +20,13 @@ let FitAddon: any;
 const NmapPage = () => {
   const [tabs, setTabs] = useState([{ id: 'tab1', target: '', command: 'nmap -sC -sV -p-', outputPath: '' }]);
   const [activeTab, setActiveTab] = useState('tab1');
+  const [nextTabNumber, setNextTabNumber] = useState(2);
 
   const addTab = () => {
-    const newTabId = `tab${tabs.length + 1}`;
+    const newTabId = `tab${nextTabNumber}`;
     setTabs([...tabs, { id: newTabId, target: '', command: 'nmap -sC -sV -p-', outputPath: '' }]);
     setActiveTab(newTabId);
+    setNextTabNumber(nextTabNumber + 1);
   };
 
   const removeTab = (tabId: string) => {
@@ -38,6 +40,12 @@ const NmapPage = () => {
     setTabs(tabs.map(tab => tab.id === tabId ? { ...tab, [field]: value } : tab));
   };
 
+  const resetTabs = () => {
+    setTabs([{ id: 'tab1', target: '', command: 'nmap -sC -sV -p-', outputPath: '' }]);
+    setActiveTab('tab1');
+    setNextTabNumber(2);
+  };
+
   return (
     <div className="flex justify-center items-start h-full pt-8">
       <Card className="w-full max-w-5xl">
@@ -47,24 +55,32 @@ const NmapPage = () => {
         </CardHeader>
         <CardContent className="grid gap-4">
           <Tabs defaultValue={activeTab} className="w-full">
-            <TabsList>
-              {tabs.map((tab) => (
-                <TabsTrigger value={tab.id} key={tab.id}>
-                  {tab.id}
-                  {tabs.length > 1 && (
-                    <span
-                      className="ml-2 rounded-md p-1 hover:bg-gray-200 cursor-pointer"
-                      onClick={() => removeTab(tab.id)}
-                    >
-                      <Icons.close className="h-4 w-4" />
-                    </span>
-                  )}
-                </TabsTrigger>
-              ))}
-              <Button variant="outline" size="sm" onClick={addTab}>
-                Add New Scan
+            <div className="flex justify-between items-center">
+              <TabsList>
+                {tabs.map((tab) => (
+                  <TabsTrigger value={tab.id} key={tab.id}>
+                    {tab.id}
+                    {tabs.length > 1 && (
+                      <span
+                        className="ml-2 rounded-md p-1 hover:bg-gray-200 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTab(tab.id);
+                        }}
+                      >
+                        <Icons.close className="h-4 w-4" />
+                      </span>
+                    )}
+                  </TabsTrigger>
+                ))}
+                <Button variant="outline" size="sm" onClick={addTab}>
+                  Add New Scan
+                </Button>
+              </TabsList>
+              <Button variant="ghost" size="icon" onClick={resetTabs}>
+                <RotateCcw className="h-4 w-4" />
               </Button>
-            </TabsList>
+            </div>
             {tabs.map((tab) => (
               <TabsContent value={tab.id} key={tab.id} className="mt-4">
                 <NmapTabContent

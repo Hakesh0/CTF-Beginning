@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 import {useState} from 'react';
+import { useSidebar } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { PanelLeft } from 'lucide-react';
 
 const Navbar = () => {
   const navItems = [
@@ -10,10 +13,13 @@ const Navbar = () => {
     { href: '/fuzzing', label: 'Fuzzing' },
   ];
 
-  const [showNavbar, setShowNavbar] = useState(true);
+  const { toggleSidebar } = useSidebar();
 
   return (
     <nav className="flex-col p-4">
+      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+        <PanelLeft className="h-4 w-4" />
+      </Button>
       <ul className="flex flex-col space-y-2">
         {navItems.map((item) => (
           <li key={item.href}>
@@ -31,5 +37,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-

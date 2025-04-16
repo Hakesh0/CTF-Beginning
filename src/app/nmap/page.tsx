@@ -38,7 +38,7 @@ const NmapPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
+    
       <Card className="w-full max-w-5xl">
         <CardHeader>
           <CardTitle>Nmap Scan</CardTitle>
@@ -80,7 +80,7 @@ const NmapPage = () => {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    
   );
 };
 
@@ -143,6 +143,8 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
         description: `Nmap scan failed: ${error.message}`,
       });
     } finally {
+        const fileContent = await (await fetch(`/api/readFile?filePath=${filePath}`)).text();
+        setScanResult(fileContent);
       setLoading(false);
       setIsRunning(false);
       setCurrentProcess(null);
@@ -162,7 +164,7 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
   };
 
   return (
-    <div className="grid gap-4">
+    
       <div className="grid gap-2">
         <Label htmlFor={`target-${tabId}`}>Target</Label>
         <Input
@@ -215,9 +217,8 @@ const NmapTabContent: React.FC<NmapTabContentProps> = ({
           style={{ height: '400px' }}
         />
       </div>
-    </div>
+    
   );
 };
 
 export default NmapPage;
-

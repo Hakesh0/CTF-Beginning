@@ -17,9 +17,11 @@ const Navbar = () => {
 
   return (
     <nav className="flex-col p-4">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-        <PanelLeft className="h-4 w-4" />
-      </Button>
+      <div className="flex justify-between items-center">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          <PanelLeft className="h-4 w-4" />
+        </Button>
+      </div>
       <ul className={`flex flex-col space-y-2 ${state === 'collapsed' ? 'hidden' : ''}`}>
         {navItems.map((item) => (
           <li key={item.href}>
@@ -37,3 +39,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

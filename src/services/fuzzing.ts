@@ -1,6 +1,8 @@
 'use server';
 
 import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
 
 let execAsync: any;
 
@@ -34,62 +36,45 @@ export interface FuzzingResult {
  *
  * @param url The URL to fuzz, containing the FUZZ keyword.
  * @param tool The fuzzing tool to use.
+ * @param outputPath The path to the file where the output should be saved.
  * @returns A promise that resolves to a FuzzingResult object.
  */
-export async function performFuzzing(url: string, tool: string): Promise<FuzzingResult> {
-  if (!execAsync) {
-    await initialize();
-  }
+export async function performFuzzing(url: string, tool: string, outputPath: string): Promise<FuzzingResult> {
+  return new Promise((resolve, reject) => {
+    const fullCommand = `${tool} -u ${url}`;
 
-  const abortController = new AbortController();
-  const signal = abortController.signal;
-
-  const promise = new Promise<FuzzingResult>(async (resolve, reject) => {
-    try {
-      if (!execAsync) {
-        console.error('execAsync is not initialized.  This indicates an issue with the environment.');
-        resolve({
-          url: url,
-          tool: tool,
-          output: 'Error: Server environment not properly initialized.',
-        });
-        return;
-      }
-
-      const { stdout, stderr } = await execAsync(`${tool} -u ${url}`, { signal });
-
-      if (stderr) {
-        console.error(`${tool} produced an error:`, stderr);
-      }
-
-      resolve({
-        url: url,
-        tool: tool,
-        output: stdout || stderr,
-      });
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log(`${tool} was aborted by the user.`);
-        resolve({
-          url: url,
-          tool: tool,
-          output: `${tool} was aborted.`,
-        });
-      } else {
-        console.error(`Failed to execute ${tool}:`, error);
-        resolve({
+    const { exec } = require('child_process');
+    exec(fullCommand, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`❌ Error: ${error.message}`);
+        reject({
           url: url,
           tool: tool,
           output: `Error: ${error.message}`,
         });
+        return;
       }
-    }
+      if (stderr) {
+        console.error(`⚠️ stderr: ${stderr}`);
+      }
+
+      try {
+        const dirname = path.dirname(outputPath);
+        fs.mkdirSync(dirname, { recursive: true });
+        fs.writeFileSync(outputPath, stdout, 'utf8');
+        console.log(`✅ Fuzzing with ${tool} complete. Output saved to: ${outputPath}`);
+        resolve({
+          url: url,
+          tool: tool,
+          output: '',
+        });
+      } catch (saveError: any) {
+        resolve({
+          url: url,
+          tool: tool,
+          output: `Fuzzing completed, but failed to save output to ${outputPath}: ${saveError.message}`,
+        });
+      }
+    });
   });
-
-  (promise as any).cancel = () => {
-    abortController.abort();
-  };
-
-  return promise;
 }
-

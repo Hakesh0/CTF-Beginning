@@ -10,10 +10,17 @@ const Navbar = () => {
   const navItems = [
     { href: '/', label: 'Home' },
     { href: '/nmap', label: 'Nmap' },
-    { href: '/fuzzing', label: 'Fuzzing' },
+    { href: '/fuzzing/ffuf', label: 'FFUF' },
+    { href: '/fuzzing/wfuzz', label: 'WFuzz' },
+    { href: '/fuzzing/gobuster', label: 'Gobuster' },
   ];
 
   const { toggleSidebar, state } = useSidebar();
+  const [showNavItems, setShowNavItems] = useState(true);
+
+  const toggleNavItems = () => {
+    setShowNavItems(!showNavItems);
+  };
 
   return (
     <nav className="flex-col p-4">
@@ -21,8 +28,11 @@ const Navbar = () => {
         <Button variant="ghost" size="icon" onClick={toggleSidebar}>
           <PanelLeft className="h-4 w-4" />
         </Button>
+        <Button variant="ghost" size="icon" onClick={toggleNavItems}>
+          {showNavItems ? 'Hide' : 'Show'}
+        </Button>
       </div>
-      <ul className={`flex flex-col space-y-2 ${state === 'collapsed' ? 'hidden' : ''}`}>
+      <ul className={`flex flex-col space-y-2 ${state === 'collapsed' || !showNavItems ? 'hidden' : ''}`}>
         {navItems.map((item) => (
           <li key={item.href}>
             <Link
@@ -39,4 +49,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
